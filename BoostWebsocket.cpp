@@ -13,7 +13,7 @@ namespace net = boost::asio;
 using tcp = net::ip::tcp;
 
 
-class Listener
+class Listener : public std::enable_shared_from_this<Listener>
 {
     net::io_context& ioc;
     tcp::acceptor acceptor;
@@ -23,13 +23,11 @@ class Listener
         acceptor(ioc,{net::ip::make_address("127.0.0.1"),port}){};
     void asyncAccept()
     {
-        acceptor.async_accept(ioc, [&](boost::system::error_code ec,
+        acceptor.async_accept(ioc, [self{shared_from_this()}](boost::system::error_code ec,
         tcp::socket socket){
 
             std::cout << "conneciton accepted" << std::endl;
-            asyncAccept();
-
-
+            self->asyncAccept();
         });
     }
 };
