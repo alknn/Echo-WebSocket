@@ -12,6 +12,41 @@ namespace net = boost::asio;
 
 using tcp = net::ip::tcp;
 
+class EchoWebsocket : public std::enable_shared_from_this<EchoWebsocket>
+{
+    websocket::stream<beast::tcp_stream> ws;
+    beast::flat_buffer buffer;
+
+    public:
+        EchoWebsocket(tcp::socket&& socket) : ws(std::move(socket)){}
+
+        void run()
+        {
+            ws.async_accept([self{shared_from_this()}](beast::error_code ec){
+                if(ec)
+                {
+                    std::cout << ec.message() << std::endl; return;
+                } 
+                self->echo();
+            });
+        }
+    void echo()
+    {
+        ws.async_read(buffer,[self{shared_from_this()}](beast::error_code ec,
+        std::size_t byte_transferred)
+        {
+            if(ec == websocket::error::closed) return;
+            if(ec)
+                {
+                    std::cout << ec.message() << std::endl; return;
+                } 
+
+            auto out = beast::buffers_to_string(self->buffer.cdata());
+            std::cout<<out<<std::endl;
+        });
+    }
+};
+
 
 class Listener : public std::enable_shared_from_this<Listener>
 {
@@ -25,7 +60,7 @@ class Listener : public std::enable_shared_from_this<Listener>
     {
         acceptor.async_accept(ioc, [self{shared_from_this()}](boost::system::error_code ec,
         tcp::socket socket){
-
+            std::make_shared<EchoWebsocket>(std::move(socket)) -> run();
             std::cout << "conneciton accepted" << std::endl;
             self->asyncAccept();
         });
