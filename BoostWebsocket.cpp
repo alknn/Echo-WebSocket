@@ -43,6 +43,17 @@ class EchoWebsocket : public std::enable_shared_from_this<EchoWebsocket>
 
             auto out = beast::buffers_to_string(self->buffer.cdata());
             std::cout<<out<<std::endl;
+
+            self -> ws.async_write(self->buffer.data(),[self](beast::error_code ec,
+            std::size_t byte_transferred)
+            {
+                if(ec)
+                {
+                    std::cout << ec.message() << std::endl; return;
+                } 
+                self->buffer.consume(self->buffer.size());
+                self->echo();
+            });
         });
     }
 };
